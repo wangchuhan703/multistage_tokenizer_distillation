@@ -1,0 +1,86 @@
+results_dir: experiments/tokenizer
+cloud_save_path: experiments/tokenizer
+compile: False 
+global_seed: 42
+log_every: 50
+vis_every: 5000
+ckpt_every: 5000
+mixed_precision: bf16
+no_local_save: True
+
+dataset: shadow
+<<<<<<< HEAD
+data_path: /tmp/data/synthetic_data_number50000_size64  # /home/haoc/storage/imagenet/val/val # data/sunshadow_number50000_size64
+=======
+data_path:  /synthetic_data_number50000_size64
+>>>>>>> 596147b45a9acd612b43758819c63a93735ab686
+image_size: 64
+
+vq_model: AE-JEPA-16
+tau: 0.07
+ema: True 
+num_codebooks: 4
+codebook_l2_norm: True
+codebook_size: 8192
+codebook_embed_dim: 32
+entropy_loss_ratio: 0.01
+vq_loss_ratio: 0.0 
+commit_loss_beta: 0.0
+kl_loss_weight: 0.000001
+reconstruction_weight: 1.0
+perceptual_weight: 0.5
+perceptual_warmup: 10000
+disc_weight: 0.2
+use_diff_aug: True 
+disc_cr_loss_weight: 4.0
+disc_start: 10000
+disc_type: dino
+disc_loss: hinge
+gen_loss: hinge
+lecam_loss_weight: 0.001
+jepa_loss_weight: 15
+
+enc_type: vit
+encoder_model: vit_small_patch14_dinov2.lvd142m
+encoder_pretrained: False
+encoder_patch_size: 4
+encoder_tuning_method: full
+dec_type: vit
+decoder_model: vit_small_patch14_dinov2.lvd142m
+decoder_pretrained: False 
+decoder_patch_size: 4
+decoder_tuning_method: full
+num_latent_tokens: 0 # 64
+
+disc_adaptive_weight: True
+
+repa: False
+repa_model: vit_large_patch14_dinov2.lvd142m
+repa_patch_size: 16
+repa_proj_dim: 1024
+repa_loss_weight: 0.1
+repa_align: repeat
+
+epochs: 500
+lr: 1.0e-4
+optim: adamw
+lr_scheduler: cosine
+weight_decay: 0.0001
+beta1: 0.9
+beta2: 0.95
+max_grad_norm: 1.0
+global_batch_size: 256
+
+dropout_p: 0.0
+
+
+# jepa related
+block_type: loose
+allow_overlap: False
+aspect_ratio: [0.75, 1.5]
+enc_mask_scale: [0.85, 1.0]
+min_keep: 2
+num_enc_masks: 1
+num_pred_masks: 1
+pred_mask_scale: [0.15, 0.2]
+ema_momentum: [0.996, 1.0]

@@ -1,0 +1,53 @@
+results_dir: ./experiments/in1k
+cloud_save_path: ./experiments/in1k
+compile: True
+global_seed: 42
+log_every: 50
+vis_every: 5000
+ckpt_every: 10000
+mixed_precision: bf16
+no_local_save: True
+
+dataset: imagenet
+data_path: /tmp/imagenet/train
+val_data_path: ../imagenet/val
+image_size: 256
+
+vq_model: AE-JEPA-Diff-16
+ema: True 
+num_latent_tokens: 0 # 128
+codebook_embed_dim: 32
+
+enc_type: vit
+encoder_model: vit_base_patch14_dinov2.lvd142m
+encoder_pretrained: False
+encoder_patch_size: 16
+encoder_tuning_method: full
+dec_type: sit
+decoder_model: SiT-B
+decoder_pretrained: False 
+decoder_patch_size: 16
+decoder_tuning_method: full
+
+epochs: 200
+lr: 1.0e-4
+lr_warmup_epochs: 0
+optim: adamw
+lr_scheduler: cosine
+weight_decay: 0.0001
+beta1: 0.9
+beta2: 0.95
+max_grad_norm: 1.0
+global_batch_size: 512
+
+jepa_loss_weight: 1.0
+block_type: random
+allow_overlap: False
+aspect_ratio: [0.75, 1.5]
+enc_mask_scale: [0.85, 1.0]
+min_keep: 10
+num_enc_masks: 1
+num_pred_masks: 4
+pred_mask_scale: [0.15, 0.2]
+ema_momentum: [0.996, 1.0]
+
