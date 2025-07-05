@@ -13,4 +13,4 @@ source ~/.bashrc
 conda activate efficientvit
 
 cd /work/hdd/bcey/hchen10/rule_tokenizer-main
-torchrun --master_port=29502 --nproc_per_node=2 train/train_tokenizer_diff_ADD.py --config configs/diff_in1k/exp015-aediff16-latent_128d32-enc_mmditd12-dec_mmditd12_ms3-cfg-cross_rope--sigmoidweight-lognormal-percepstart_2.yaml 
+torchrun --master_port=29502 --nproc_per_node=2  inference/reconstruct_vq.py 
