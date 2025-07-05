@@ -1,4 +1,5 @@
 import torch
+import time
 torch.backends.cuda.matmul.allow_tf32 = True
 torch.backends.cudnn.allow_tf32 = True
 import torch.nn.functional as F
@@ -76,7 +77,9 @@ def create_npz_from_sample_folder(sample_dir, num=50000):
 
 
 def main(args):
-    
+    total_gen_time = 0.0  # 总生成时间
+    total_images = 0      # 总生成图像数
+    batch_times = []      # 每个 batch 的时间
     
     # Setup PyTorch:
     assert torch.cuda.is_available(), "Sampling with DDP requires at least one GPU. sample.py supports CPU-only usage"
@@ -157,6 +160,7 @@ def main(args):
     loader = tqdm(loader) if rank == 0 else loader
     total = 0
     for x, _ in loader:
+        start_time = time.time()
         if args.image_size_eval != args.image_size:
             rgb_gts = F.interpolate(x, size=(args.image_size_eval, args.image_size_eval), mode='bicubic')
         else:
@@ -167,8 +171,15 @@ def main(args):
             
             # TODO: change this for diffusion decoder
             # samples = vq_model(x)
+            # start_time = time.time()
             quant, _, _ = vq_model.module.encode(x)
             samples = vq_model.module.decode(quant, num_steps=args.num_inference_steps, cfg_scale=args.cfg_scale, clip=args.clip)
+            torch.cuda.synchronize()  # 等待 CUDA 操作完成
+            end_time = time.time()
+            elapsed = end_time - start_time
+            total_gen_time += elapsed
+            total_images += x.shape[0]
+            batch_times.append(elapsed)
 
             if args.image_size_eval != args.image_size:
                 samples = F.interpolate(samples, size=(args.image_size_eval, args.image_size_eval), mode='bicubic')
@@ -215,6 +226,19 @@ def main(args):
 
     # print(gather_latents)
     if rank == 0:
+        throughput = total_images / total_gen_time
+        avg_batch_time = np.mean(batch_times)
+        print(f"Throughput: {throughput:.2f} images/s over {total_images} images")
+        print(f"Average batch time: {avg_batch_time:.4f} s")
+
+        # 写入日志文件
+        with open(f"{sample_folder_dir}/throughput_log.txt", "w") as f:
+            f.write(f"total_images: {total_images}\n")
+            f.write(f"total_time: {total_gen_time:.4f}\n")
+            f.write(f"throughput: {throughput:.4f} images/s\n")
+            f.write(f"avg_batch_time: {avg_batch_time:.4f} s\n")
+
+    if rank == 0:
         gather_psnr_val = list(itertools.chain(*gather_psnr_val))
         gather_ssim_val = list(itertools.chain(*gather_ssim_val))   
         # gather_fid_val = list(itertools.chain(*gather_fid_val))     
@@ -255,11 +279,11 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data-path", type=str, required=True)
+    parser.add_argument("--data-path", type=str, default="/work/hdd/bcey/hchen10/datasets/imagenet/ImageNet/val")
     parser.add_argument("--dataset", type=str, choices=['imagenet', 'coco'], default='imagenet')
-    parser.add_argument("--config", type=str, default="SoftVQVAE/softvq-l-64")
-    parser.add_argument("--vq-ckpt", type=str, default="SoftVQVAE/softvq-l-64")
-    parser.add_argument("--vq-model", type=str, default="SoftVQVAE/softvq-l-64")
+    parser.add_argument("--config", type=str, default="/work/hdd/bcey/hchen10/rule_tokenizer-main/configs/diff_in1k/exp017-aediff8_rfid.yaml")
+    parser.add_argument("--vq-ckpt", type=str, default="/work/hdd/bcey/hchen10/rule_tokenizer-main/experiments/in1k/exp017-cfg2-aediff8-latent_128d32-enc_mmditd12-dec_mmditd12_ms4-cfg-cross_rope-sigmoidweight-lognormal-percepstart_2/ckpts_ADD_cfg2.0_p0.5_continue14k/0003200.pt")
+    parser.add_argument("--vq-model", type=str, default="AE-Diff-16")
     parser.add_argument("--image-size", type=int, choices=[256, 384, 512], default=256)
     parser.add_argument("--image-size-eval", type=int, choices=[256, 384, 512], default=256)
     parser.add_argument("--sample-dir", type=str, default="reconstructions")
@@ -267,7 +291,7 @@ if __name__ == "__main__":
     parser.add_argument("--global-seed", type=int, default=0)
     parser.add_argument("--num-workers", type=int, default=4)
     parser.add_argument("--cfg-scale", type=float, default=1.0, help='classifier free guidance scale')
-    parser.add_argument("--num-inference-steps", type=int, default=50, help='number of inference steps')
+    parser.add_argument("--num-inference-steps", type=int, default=1, help='number of inference steps')
     parser.add_argument("--clip", action='store_true', default=False)
     args = parser.parse_args()
     main(args)
